@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "nuvel-admin",
+	"name": "nuvel-admin-app",
 	"compatibility_date": "2025-09-19",
 	"assets": {
 		"directory": "./dist",
