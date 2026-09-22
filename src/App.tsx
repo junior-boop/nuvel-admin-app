@@ -8,6 +8,7 @@ import Errors from '@/pages/Errors'
 import Notifications from '@/pages/Notifications'
 import Comments from '@/pages/Comments'
 import Users from '@/pages/Users'
+import BibleVersions from '@/pages/BibleVersions'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="comments" element={<Comments />} />
         <Route path="users" element={<Users />} />
+        <Route path="bible-versions" element={<BibleVersions />} />
       </Route>
     </Routes>
   )

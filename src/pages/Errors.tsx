@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronUp, Check, Trash2 } from 'lucide-react'
+import { Check, Trash2 } from 'lucide-react'
 import { api, type ErrorLog } from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { DetailPanel, DetailField } from '@/components/ui/detail-panel'
 
 const levelTone = { fatal: 'danger', error: 'danger', warning: 'warning' } as const
 
 export default function Errors() {
   const [resolved, setResolved] = useState<'unresolved' | 'resolved' | 'all'>('unresolved')
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -23,6 +24,8 @@ export default function Errors() {
       }),
   })
 
+  const selected = data?.errors?.find((e) => e.id === selectedId) ?? null
+
   const resolveMutation = useMutation({
     mutationFn: api.resolveError,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['errors'] }),
@@ -30,7 +33,10 @@ export default function Errors() {
 
   const deleteMutation = useMutation({
     mutationFn: api.deleteError,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['errors'] }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['errors'] })
+      setSelectedId((cur) => (cur === id ? null : cur))
+    },
   })
 
   return (
@@ -60,55 +66,66 @@ export default function Errors() {
       ) : (
         <div className="flex flex-col gap-3">
           {data.errors.map((err: ErrorLog) => (
-            <Card key={err.id}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                    <Badge tone={levelTone[err.level] ?? 'default'}>{err.level}</Badge>
-                    <Badge>{err.platform}</Badge>
-                    <Badge tone={err.environment === 'production' ? 'danger' : 'default'}>{err.environment}</Badge>
-                    {err.screen && <Badge>{err.screen}</Badge>}
-                    <span className="text-xs text-gray-500">{new Date(err.created).toLocaleString('fr-FR')}</span>
-                  </div>
-                  <p className="truncate text-sm font-medium text-gray-100">{err.message}</p>
-                  {err.stack && (
-                    <button
-                      onClick={() => setExpanded(expanded === err.id ? null : err.id)}
-                      className="mt-1 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300"
-                    >
-                      {expanded === err.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      Stack trace
-                    </button>
-                  )}
-                  {expanded === err.id && err.stack && (
-                    <pre className="mt-2 overflow-x-auto rounded-lg bg-bg p-3 text-xs text-gray-400">{err.stack}</pre>
-                  )}
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  {!err.resolved && (
-                    <Button
-                      variant="secondary"
-                      className="px-2.5 py-1.5"
-                      onClick={() => resolveMutation.mutate(err.id)}
-                      title="Marquer comme résolu"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    className="px-2.5 py-1.5 text-red-400"
-                    onClick={() => deleteMutation.mutate(err.id)}
-                    title="Supprimer"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+            <Card
+              key={err.id}
+              className="cursor-pointer transition-colors hover:border-primary/50"
+              onClick={() => setSelectedId(err.id)}
+            >
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <Badge tone={levelTone[err.level] ?? 'default'}>{err.level}</Badge>
+                <Badge>{err.platform}</Badge>
+                <Badge tone={err.environment === 'production' ? 'danger' : 'default'}>{err.environment}</Badge>
+                {err.screen && <Badge>{err.screen}</Badge>}
+                <span className="text-xs text-gray-500">{new Date(err.created).toLocaleString('fr-FR')}</span>
               </div>
+              <p className="truncate text-sm font-medium text-gray-100">{err.message}</p>
             </Card>
           ))}
         </div>
       )}
+
+      <DetailPanel
+        open={!!selected}
+        onClose={() => setSelectedId(null)}
+        title={selected?.message ?? ''}
+        subtitle={selected ? new Date(selected.created).toLocaleString('fr-FR') : undefined}
+        footer={
+          selected && (
+            <>
+              {!selected.resolved && (
+                <Button variant="secondary" onClick={() => resolveMutation.mutate(selected.id)}>
+                  <Check className="h-4 w-4" /> Marquer comme résolu
+                </Button>
+              )}
+              <Button variant="danger" onClick={() => deleteMutation.mutate(selected.id)}>
+                <Trash2 className="h-4 w-4" /> Supprimer
+              </Button>
+            </>
+          )
+        }
+      >
+        {selected && (
+          <div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Badge tone={levelTone[selected.level] ?? 'default'}>{selected.level}</Badge>
+              <Badge>{selected.platform}</Badge>
+              <Badge tone={selected.environment === 'production' ? 'danger' : 'default'}>{selected.environment}</Badge>
+              <Badge tone={selected.resolved ? 'success' : 'warning'}>
+                {selected.resolved ? 'Résolue' : 'Non résolue'}
+              </Badge>
+            </div>
+            <DetailField label="Écran" value={selected.screen} />
+            <DetailField label="Version app" value={selected.appVersion} />
+            <DetailField label="Utilisateur" value={selected.userId} />
+            <DetailField label="Source" value={selected.source} />
+            <DetailField label="Contexte" value={selected.extra} />
+            <DetailField
+              label="Stack trace"
+              value={selected.stack && <pre className="overflow-x-auto rounded-lg bg-bg p-3 text-xs text-gray-400">{selected.stack}</pre>}
+            />
+          </div>
+        )}
+      </DetailPanel>
     </div>
   )
 }

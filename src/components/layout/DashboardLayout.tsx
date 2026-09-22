@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, AlertTriangle, Bell, MessageSquareWarning, Users, LogOut } from 'lucide-react'
+import { LayoutDashboard, AlertTriangle, Bell, MessageSquareWarning, Users, BookOpen, LogOut } from 'lucide-react'
 import { useAuth } from '@/context/auth'
 import { cn } from '@/lib/utils'
 
@@ -9,14 +9,15 @@ const navItems = [
   { to: '/notifications', label: 'Notifications', icon: Bell },
   { to: '/comments', label: 'Commentaires signalés', icon: MessageSquareWarning },
   { to: '/users', label: 'Utilisateurs', icon: Users },
+  { to: '/bible-versions', label: 'Versions de la Bible', icon: BookOpen },
 ]
 
 export function DashboardLayout() {
   const { logout } = useAuth()
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface p-4">
+    <div className="flex h-screen overflow-hidden">
+      <aside className="flex w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface p-4">
         <div className="mb-6 px-2">
           <h1 className="text-lg font-bold text-white">Nuvel Admin</h1>
           <p className="text-xs text-gray-500">Console créateurs</p>

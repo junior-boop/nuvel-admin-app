@@ -82,6 +82,62 @@ export interface AppUser {
   biography: string | null
 }
 
+export interface BibleVersionMetadata {
+  name: string
+  shortname: string
+  module: string
+  year: string
+  publisher: string | null
+  owner: string | null
+  description: string
+  lang: string
+  lang_short: string
+  copyright: number
+  copyright_statement: string
+  url: string | null
+  citation_limit: number
+  restrict: number
+  italics: number
+  strongs: number
+  red_letter: number
+  paragraph: number
+  official: number
+  research: number
+  module_version: string
+}
+
+export interface BibleVersion {
+  key: string
+  size: number
+  uploaded: string
+  verset?: number
+  metadata?: BibleVersionMetadata
+  error?: string
+}
+
+export interface BibleVerse {
+  book_name: string
+  book: number
+  chapter: number
+  verse: number
+  text: string
+}
+
+export type BibleVersionInput = Partial<BibleVersionMetadata> &
+  Pick<BibleVersionMetadata, 'name' | 'shortname'> & { verses?: BibleVerse[] }
+
+export type BibleVersionUpdateInput = Partial<BibleVersionMetadata> & { verses?: BibleVerse[] }
+
+export interface StatsHistoryPoint {
+  date: string
+  count: number
+}
+
+export type StatsHistory = Record<
+  'users' | 'articles' | 'comments' | 'notes' | 'unresolvedErrors' | 'pushTokens',
+  StatsHistoryPoint[]
+>
+
 export const api = {
   login: (email: string, password: string) =>
     request<{ success: boolean; accessToken: string; refreshToken: string }>('/admin/login', {
@@ -90,6 +146,9 @@ export const api = {
     }),
 
   getStats: () => request<{ success: boolean; stats: AdminStats }>('/admin/stats'),
+
+  getStatsHistory: (days = 14) =>
+    request<{ success: boolean; days: number; history: StatsHistory }>(`/admin/stats-history?days=${days}`),
 
   getErrors: (params: { resolved?: boolean; level?: string; platform?: string; environment?: string; limit?: number; offset?: number } = {}) => {
     const query = new URLSearchParams()
@@ -122,4 +181,24 @@ export const api = {
     request<{ success: boolean }>(`/comments/${commentId}/admin`, { method: 'DELETE' }),
 
   getUsers: () => request<AppUser[]>('/users'),
+
+  getBibleVersions: () =>
+    request<{ success: boolean; count: number; versions: BibleVersion[] }>('/admin/bible-versions'),
+
+  deleteBibleVersion: (key: string) =>
+    request<{ success: boolean }>(`/admin/bible-versions?key=${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+    }),
+
+  createBibleVersion: (data: BibleVersionInput) =>
+    request<{ success: boolean; version: BibleVersion; message?: string }>('/admin/bible-versions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateBibleVersion: (key: string, data: BibleVersionUpdateInput) =>
+    request<{ success: boolean }>(`/admin/bible-versions?key=${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 }
