@@ -168,11 +168,19 @@ export const api = {
   deleteError: (id: string) =>
     request<{ success: boolean }>(`/errors/${id}`, { method: 'DELETE' }),
 
-  broadcastNotification: (title: string, body: string, type: 'announcement' | 'prayer_topic') =>
+  broadcastNotification: (
+    title: string,
+    body: string,
+    type: 'announcement' | 'prayer_topic',
+    articleId?: string | null
+  ) =>
     request<{ success: boolean; notified: number }>('/notifications/broadcast', {
       method: 'POST',
-      body: JSON.stringify({ title, body, type }),
+      body: JSON.stringify({ title, body, type, articleId: articleId || null }),
     }),
+
+  getArticlesList: () =>
+    request<{ id: string; title: string }[]>('/articles'),
 
   getReportedComments: () =>
     request<{ reportedComments: ReportedComment[]; count: number }>('/comments/reported'),
